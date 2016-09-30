@@ -2,7 +2,7 @@ defmodule LiveChart.UserSocket do
   use Phoenix.Socket
 
   ## Channels
-  # channel "room:*", LiveChart.RoomChannel
+  channel "chart:*", LiveChart.ChartChannel
 
   ## Transports
   transport :websocket, Phoenix.Transports.WebSocket
