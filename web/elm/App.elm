@@ -7,7 +7,7 @@ import Phoenix.Push
 import Json.Decode exposing ((:=))
 import Html exposing (..)
 import Html.App as App
-
+import Graph
 
 -- MAIN
 
@@ -27,6 +27,7 @@ main =
 type alias Model =
   { numbers : List Int
   , socket : Phoenix.Socket.Socket Msg
+  , graph : Graph.Model
   }
 
 
@@ -35,7 +36,7 @@ init =
   let
     (initialSocket, joinCmd) = initSocket
   in
-    ({numbers = [ ], socket = initialSocket}, Cmd.map PhoenixMsg joinCmd)
+    ({numbers = [ ], socket = initialSocket, graph = Graph.init}, Cmd.map PhoenixMsg joinCmd)
 
 
 initSocket : (Phoenix.Socket.Socket Msg, Cmd (Phoenix.Socket.Msg Msg))
@@ -51,10 +52,10 @@ initSocket =
 
 -- UPDATE
 
-
 type Msg
   = ReceiveNumber Json.Decode.Value
   | PhoenixMsg (Phoenix.Socket.Msg Msg)
+  | GraphMsg Graph.Msg
 
 
 type alias NumberMessage = {number : Int}
@@ -63,13 +64,14 @@ type alias NumberMessage = {number : Int}
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
+    GraphMsg msg -> ({model | graph = Graph.update msg model.graph}, Cmd.none)
     ReceiveNumber json ->
       case Json.Decode.decodeValue numberMessageDecoder json of
         Ok numberMessage ->
           let
             newNumbers =
               numberMessage.number :: model.numbers
-                |> List.take 10
+                |> List.take model.graph.limit
           in
             ({model | numbers = newNumbers}, Cmd.none)
         Err err ->
@@ -91,7 +93,7 @@ numberMessageDecoder =
 
 view : Model -> Html Msg
 view model =
-  div [ ] (viewNumbers model.numbers)
+  div [ ] [ App.map GraphMsg (Graph.view model.graph model.numbers) ]
 
 
 viewNumbers : List Int -> List (Html Msg)
